@@ -14,7 +14,7 @@ model Order{
   id String @id @default(uuid())
   articles ArticleId[]
   totalprice Float
-  status Status
+  status String
   createdAt DateTime @default(now())
 
 }
@@ -23,10 +23,4 @@ model ArticleId{
   id String @id
   order Order @relation(fields: [orderId], references: [id])
   orderId String
-}
-
-enum Status{
-  ORDERED
-  INPROGRESS
-  DELIVERED
 }
