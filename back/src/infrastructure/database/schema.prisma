@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["darwin"]
 }
 
 datasource db {
@@ -24,4 +25,6 @@ model ArticleId{
   id String @id
   order Order @relation(fields: [orderId], references: [id])
   orderId String
+  size String
+  price Float
 }
