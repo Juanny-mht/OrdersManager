@@ -7,68 +7,123 @@ const urlStock = "http://localhost:3002/api";
 
 //get all orders
 router.get("/", async (req, res) => {
-    const orders = await client.order.findMany({
-    });
+    const orders = await client.order.findMany();
     res.status(200).json(orders);
 });
 
-// post an order 
-// get the idArticle 
-// call the api of the stock to know if the article is available
-// if the article is available, create the order and add the articleId to the table articleId
+//get an order by id
+router.get("/:id", async (req, res) => {
+    const { id } = req.params;
+    const order = await client.order.findUnique({
+        where: {
+            id: id
+        }
+    });
+    res.status(200).json(order);
+});
 
+
+
+//post one or more orders
 router.post("/", async (req, res) => {
-    const {articles} = req.body;
+    const {articles, status} = req.body;
+    let totalPrice = 0.0;  
+    let listOrder = [];
+    // console.log(articles);
+    // console.log(status);
 
-    console.log(articles);
+    let fetchPromises = [];
+    let count = 0;
+    let price = 0.0;
     for (let i = 0; i < articles.length; i++) {
         const article = articles[i];
         const articleId = article.id;
-        console.log(articleId);
-        const price = article.price;
         const size = article.size;
-        const response = await fetch(`${urlStock}/stocks/${articleId}/`);
-        console.log(response);
-        // const stock = await response.json();
-        // if (stock.quantity >= quantity) {
-        //     const order = await client.order.create({
-        //         data: {
-        //             articleId: articleId,
-        //             quantity: quantity
-        //         }
-        //     });
-        // } else {
-        //     res.status(400).json({ message: "Article not available" });
-        // }
+ 
+
+
+        const response = fetch(`${urlStock}/stocks/${articleId}`).then(response => response.json()).then(data => {
+            //on parcourt le json pour trouver le count qui correspond à la size
+            //on vérifie si le count est suffisant
+            //si le count est suffisant, on crée la commande
+            //sinon on renvoie une erreur
+            for (stock of data.stocks) {
+                //console.log(stock);
+                if (stock.size === size) {
+                    count = stock.count;
+                    price = stock.price;
+                }
+            }
+            if (count > 0) {
+                totalPrice += price;
+                console.log(totalPrice);
+
+                //on appelle l'api de stock pour décrémenter le stock
+                fetch(`${urlStock}/stocks/${articleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({size: size, count: count - 1})
+                }).then(response => response.json()).then(data => {
+                    //console.log(data);
+                });
+                listOrder.push(article);
+            }
+            
+        });
+        // console.log("totalPrice avant await:");
+        // console.log(listOrder);
+        fetchPromises.push(response);
+
     }
-
-    // const size = articleId.size;
-    //const response = await fetch(`${urlStock}/stocks/${articleId}`);
-    //console.log(response);
-
-    //gerer cas ou l'article n'existe pas
     
-    //gerer cas ou l'article n'a pas de taille
-    //gerer cas ou l'article n'a pas de stock
-
-    // const stock = await response.json();
-
-    // parcourir stock pour trouver la taille qui correspond et recuperer l'objet correspondant
-
-    //une fois l'objet trouvé, on vérifie si la quantité est suffisante
-
-
-    // if (stock.quantity >= quantity) {
-    //     const order = await client.order.create({
-    //         data: {
-    //             articleId: articleId,
-    //             quantity: quantity
-    //         }
-    //     });
-    //     res.status(201).json(order);
-    // } else {
-    //     res.status(400).json({ message: "Article not available" });
-    // }
+    await Promise.all(fetchPromises);
+    // console.log("totalPrice après await:");
+    // console.log(listOrder);
+    
+    const order = await client.order.create({
+        data: {
+            totalprice: totalPrice,
+            status: status,
+            articles: JSON.stringify(listOrder)
+        }
+    });
+    console.log(order);
+    res.status(201).json(order);
 });
+
+// delete an order by id
+router.delete("/:id", async (req, res) => {
+    const { id } = req.params;
+    const order = await client.order.delete({
+        where: {
+            id: parseInt(id)
+        }
+    });
+    res.status(200).json(order);
+});
+
+//delete all orders
+router.delete("/", async (req, res) => {
+    const orders = await client.order.deleteMany();
+    res.status(200).json(orders);
+});
+
+//modify the status of an order
+router.put("/:id", async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const order = await client.order.update({
+        where: {
+            id: id
+        },
+        data: {
+            status: status
+        }
+    });
+    res.status(200).json(order);
+});
+
 
 module.exports = router;

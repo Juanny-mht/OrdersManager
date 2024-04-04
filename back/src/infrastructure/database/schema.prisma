@@ -13,17 +13,8 @@ datasource db {
 
 model Order{
   id String @id @default(uuid())
-  articles ArticleId[]
+  articles String
   totalprice Float
   status String
   createdAt DateTime @default(now())
-
-}
-
-model ArticleId{
-  id String @id
-  order Order @relation(fields: [orderId], references: [id])
-  orderId String
-  size String
-  price Float
 }
