@@ -73,7 +73,6 @@ router.get("/:id", async (req, res) => {
     res.status(200).json(order);
 });
 
-//post one or more orders
 /**
  * @swagger
  * /api/orders:
@@ -176,7 +175,19 @@ router.post("/", async (req, res) => {
 
 /**
  * @swagger 
- * 
+ * /api/orders/{id}:
+ * delete:
+ * description: Delete an order by id
+ * parameters:
+ * - name: id
+ * in: path
+ * required: true
+ * type: string
+ * responses:
+ * 200:
+ * description: Success
+ * 400:
+ * description: Error : Order not found
  */
 router.delete("/:id", async (req, res) => {
 
@@ -193,7 +204,17 @@ router.delete("/:id", async (req, res) => {
     res.status(200);
 });
 
-//delete all orders
+/**
+ * @swagger
+ * /api/orders:
+ * delete:
+ * description: Delete all orders
+ * responses:
+ * 200:
+ * description: Success
+ * 500:
+ * description: Internal Server Error
+ */
 router.delete("/", async (req, res) => {
     try {
         const orders = await client.order.deleteMany();
@@ -203,7 +224,28 @@ router.delete("/", async (req, res) => {
     res.status(200).send();
 });
 
-//modify an order if the status is 'in progress' else return an error
+/**
+ * @swagger
+ * /api/orders/{id}:
+ * put:
+ * description: Modify an order by id
+ * parameters:
+ * - name: id
+ * in: path
+ * required: true
+ * type: string
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:  #ref to the schema in OrdersManager.json file
+ * responses:
+ * 200:
+ * description: Success
+ * 400:
+ * description: Error : You can't modify this order. The order is completed or canceled.
+ * 500:
+ * description: Internal Server Error
+ */
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
     const { articles, status } = req.body;
@@ -298,6 +340,5 @@ router.put("/:id", async (req, res) => {
     }
 
 });
-
 
 module.exports = router;
