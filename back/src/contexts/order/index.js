@@ -6,7 +6,17 @@ const router = Router();
 
 const urlStock = "http://localhost:3002/api";
 
-//get all orders
+/** 
+ * @swagger
+ * /api/orders:
+ * get:
+ * description: Get all orders
+ * responses:
+ * 200:
+ * description: Success
+ * 500:
+ * description: Internal Server Error
+ */
 router.get("/", async (req, res) => {
     const orders = await client.order.findMany();
 
@@ -19,14 +29,30 @@ router.get("/", async (req, res) => {
             console.log('Response is valid');
         });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).send();
+        console.log(error.message);
         return;
     }
 
     res.status(200).json(orders);
 });
 
-//get an order by id
+/**
+ * @swagger
+ * /api/orders/{id}:
+ * get:
+ * description: Get an order by id
+ * parameters:
+ * - name: id
+ *  in: path
+ * required: true
+ * type: string
+ * responses:
+ * 200:
+ * description: Success
+ * 500:
+ * description: Internal Server Error
+ */
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
     const order = await client.order.findUnique({
@@ -34,49 +60,59 @@ router.get("/:id", async (req, res) => {
             id: id
         }
     });
-
     order.createdAt = order.createdAt.toISOString();
-
     try {
         validateMessage('orderResponse', order, () => {
             console.log('Response is valid');
         }
         );} catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).send();
+        console.log(error.message);
         return;
     }
-
     res.status(200).json(order);
 });
 
 //post one or more orders
+/**
+ * @swagger
+ * /api/orders:
+ * post:
+ * description: Create one or more orders
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:  #ref to the schema in OrdersManager.json file
+ * responses:
+ * 201:
+ * description: Created
+ * 400:
+ * description: Bad Request
+ * 500:
+ * description: Internal Server Error
+ */
 router.post("/", async (req, res) => {
     const {articles, status} = req.body;
     let totalPrice = 0.0;  
     let listOrder = [];
-    // console.log(articles);
-    // console.log(status);
-
     // Validation du message
     try {
         validateMessage('orders', req.body, () => {
             console.log('Body is valid');
         });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(400).send();
+        console.log(error.message);
         return;
     }
-
     let fetchPromises = [];
     let count = 0;
     let price = 0.0;
     for (let i = 0; i < articles.length; i++) {
         const article = articles[i];
         const articleId = article.id;
-        const size = article.size;
- 
-
-
+        const size = article.size; 
+        try {
         const response = fetch(`${urlStock}/stocks/${articleId}`).then(response => response.json()).then(data => {
             //on parcourt le json pour trouver le count qui correspond à la size
             //on vérifie si le count est suffisant
@@ -107,16 +143,15 @@ router.post("/", async (req, res) => {
             }
             
         });
-        // console.log("totalPrice avant await:");
-        // console.log(listOrder);
         fetchPromises.push(response);
-
+        }catch (error) {
+            res.status(500).send();
+            return;
+        }
     }
-    
     await Promise.all(fetchPromises);
-    // console.log("totalPrice après await:");
-    // console.log(listOrder);
     
+
     const order = await client.order.create({
         data: {
             totalprice: totalPrice,
@@ -124,23 +159,25 @@ router.post("/", async (req, res) => {
             articles: JSON.stringify(listOrder)
         }
     });
-    console.log(order);
+    order.createdAt = order.createdAt.toISOString();
 
     // Validation du message de réponse
-    order.createdAt = order.createdAt.toISOString();
     try {
         validateMessage('orderResponse', order, () => {
             console.log('Response is valid');
         });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).send();
         return;
     }
 
     res.status(201).json(order);
 });
 
-// delete an order by id
+/**
+ * @swagger 
+ * 
+ */
 router.delete("/:id", async (req, res) => {
 
     const { id } = req.params;
@@ -158,10 +195,13 @@ router.delete("/:id", async (req, res) => {
 
 //delete all orders
 router.delete("/", async (req, res) => {
-    const orders = await client.order.deleteMany();
-    res.status(200).json(orders);
+    try {
+        const orders = await client.order.deleteMany();
+    }catch(error) {
+        res.status(500).send();
+    }
+    res.status(200).send();
 });
-
 
 //modify an order if the status is 'in progress' else return an error
 router.put("/:id", async (req, res) => {
@@ -188,8 +228,6 @@ router.put("/:id", async (req, res) => {
             id: id 
         }
     });
-    console.log(order);
-
 
     if (articles === undefined) {
         //on modifie juste le status
