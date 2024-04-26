@@ -1,0 +1,49 @@
+{
+    "ordersResponse" : {
+        "type" : "array", 
+        "items" : {
+            "type" : "object",
+            "properties" : {
+                "id" : {
+                    "type" : "string"
+                },
+                "articles" : {
+                    "type" : "string"
+                },
+                "totalprice" : {
+                    "type" : "number"
+                },
+                "status" : {
+                    "type" : "string",
+                    "valid" : ["IN PROGRESS", "COMPLETED"]
+                },
+                "createdAt" : {
+                    "type" : "string"
+                }
+            },
+            "required" : ["id", "articles", "totalprice", "status", "createdAt"]
+        }
+    }, 
+    "orderResponse" : {
+        "type" : "object",
+        "properties" : {
+            "id" : {
+                "type" : "string"
+            },
+            "articles" : {
+                "type" : "string"
+            },
+            "totalprice" : {
+                "type" : "number"
+            },
+            "status" : {
+                "type" : "string",
+                "valid" : ["IN PROGRESS", "COMPLETED"]
+            },
+            "createdAt" : {
+                "type" : "string"
+            }
+        },
+        "required" : ["id", "articles", "totalprice", "status", "createdAt"]
+    }
+}

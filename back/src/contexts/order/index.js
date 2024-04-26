@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const { client } = require("../../infrastructure/database/database");
+const validateMessage = require("../../validateMessageMiddleware");
 
 const router = Router();
 
@@ -8,6 +9,20 @@ const urlStock = "http://localhost:3002/api";
 //get all orders
 router.get("/", async (req, res) => {
     const orders = await client.order.findMany();
+
+    for (let i = 0; i < orders.length; i++) {
+        orders[i].createdAt = orders[i].createdAt.toISOString();
+    }
+
+    try {
+        validateMessage('ordersResponse', orders, () => {
+            console.log('Response is valid');
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+        return;
+    }
+
     res.status(200).json(orders);
 });
 
@@ -19,10 +34,20 @@ router.get("/:id", async (req, res) => {
             id: id
         }
     });
+
+    order.createdAt = order.createdAt.toISOString();
+
+    try {
+        validateMessage('orderResponse', order, () => {
+            console.log('Response is valid');
+        }
+        );} catch (error) {
+        res.status(400).json({ message: error.message });
+        return;
+    }
+
     res.status(200).json(order);
 });
-
-
 
 //post one or more orders
 router.post("/", async (req, res) => {
@@ -31,6 +56,16 @@ router.post("/", async (req, res) => {
     let listOrder = [];
     // console.log(articles);
     // console.log(status);
+
+    // Validation du message
+    try {
+        validateMessage('orders', req.body, () => {
+            console.log('Body is valid');
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+        return;
+    }
 
     let fetchPromises = [];
     let count = 0;
@@ -47,7 +82,7 @@ router.post("/", async (req, res) => {
             //on vérifie si le count est suffisant
             //si le count est suffisant, on crée la commande
             //sinon on renvoie une erreur
-            for (stock of data.stocks) {
+            for (stock of data) {
                 //console.log(stock);
                 if (stock.size === size) {
                     count = stock.count;
@@ -90,18 +125,35 @@ router.post("/", async (req, res) => {
         }
     });
     console.log(order);
+
+    // Validation du message de réponse
+    order.createdAt = order.createdAt.toISOString();
+    try {
+        validateMessage('orderResponse', order, () => {
+            console.log('Response is valid');
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+        return;
+    }
+
     res.status(201).json(order);
 });
 
 // delete an order by id
 router.delete("/:id", async (req, res) => {
+
     const { id } = req.params;
+    try {
     const order = await client.order.delete({
         where: {
-            id: parseInt(id)
+            id: id
         }
-    });
-    res.status(200).json(order);
+    });} catch (error) {
+        res.status(400).send("Error : Order not found" );
+        return;
+    }
+    res.status(200);
 });
 
 //delete all orders
@@ -121,11 +173,23 @@ router.put("/:id", async (req, res) => {
     let count = 0;
     let price = 0.0;
 
+    // Validation du message
+    try {
+        validateMessage('orders', req.body, () => {
+            console.log('Body is valid');
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+        return;
+    }
+
     const order = await client.order.findUnique({
         where: {
             id: id 
         }
     });
+    console.log(order);
+
 
     if (articles === undefined) {
         //on modifie juste le status
@@ -145,7 +209,7 @@ router.put("/:id", async (req, res) => {
                 const articleId = article.id;
                 const size = article.size;
                 const response = fetch(`${urlStock}/stocks/${articleId}`).then(response => response.json()).then(data => {
-                    for (stock of data.stocks) {
+                    for (stock of data) {
                         if (stock.size === size) {
                             count = stock.count;
                             price = stock.price;
@@ -178,6 +242,17 @@ router.put("/:id", async (req, res) => {
                     articles: JSON.stringify(listOrder)
                 }
             });
+            // Validation du message de réponse
+            order.createdAt = order.createdAt.toISOString();
+            try {
+                validateMessage('orderResponse', order, () => {
+                    console.log('Response is valid');
+                });
+            } catch (error) {
+                res.status(400).json({ message: error.message });
+                return;
+            }
+
             res.status(200).json(order);
         }else {
             res.status(400).json({message: "You can't modify this order. The order is completed or canceled."});

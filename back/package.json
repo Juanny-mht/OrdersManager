@@ -29,12 +29,14 @@
     "schema": "src/infrastructure/database/schema.prisma"
   },
   "dependencies": {
+    "@hapi/joi": "^17.1.1",
     "@prisma/client": "^4.11.0",
     "body-parser": "^1.19.0",
     "convict": "^6.2.4",
     "convict-format-with-validator": "^6.2.0",
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
+    "json-joi-converter": "^17.12.1",
     "mysql2": "^2.2.5",
     "sequelize": "^6.37.2",
     "sequelize-cli": "^5.5.1"
