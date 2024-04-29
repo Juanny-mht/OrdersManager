@@ -11,7 +11,8 @@
                             "type" : "string"
                         },
                         "size" : {
-                            "type" : "string"
+                            "type" : "string", 
+                            "valid" : ["S", "M", "L", "XL"]
                         }
                     },
                     "required" : [ "id", "size" ]

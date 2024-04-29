@@ -1,7 +1,7 @@
 {
   "name": "back",
   "version": "1.0.0",
-  "description": "Cloud-TP1",
+  "description": "OrderManager",
   "main": "index.js",
   "scripts": {
     "serve": "nodemon src/main.js",
@@ -12,19 +12,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/K-Jean/CLOUD-TP1.git"
+    "url": "git+https://github.com/Juanny-mht/OrdersManager.git"
   },
   "keywords": [
     "cloud",
     "microservice",
     "REST"
   ],
-  "author": "Kévin JEAN",
+  "author": "Juanny MHT & Lina BKD",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/K-Jean/CLOUD-TP1/issues"
+    "url": "https://github.com/Juanny-mht/OrdersManager/issues"
   },
-  "homepage": "https://github.com/K-Jean/CLOUD-TP1#readme",
+  "homepage": "https://github.com/Juanny-mht/OrdersManager#readme",
   "prisma": {
     "schema": "src/infrastructure/database/schema.prisma"
   },

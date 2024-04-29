@@ -2,6 +2,6 @@ const { Router } = require("express");
 
 const router = Router();
 
-router.use("/orders", require("./order"));
+router.use("/order", require("./order"));
 
 module.exports = router;

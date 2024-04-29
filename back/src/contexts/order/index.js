@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { client } = require("../../infrastructure/database/database");
 const validateMessage = require("../../validateMessageMiddleware");
+const e = require("express");
 
 const router = Router();
 
@@ -23,7 +24,6 @@ router.get("/", async (req, res) => {
     for (let i = 0; i < orders.length; i++) {
         orders[i].createdAt = orders[i].createdAt.toISOString();
     }
-
     try {
         validateMessage('ordersResponse', orders, () => {
             console.log('Response is valid');
@@ -33,7 +33,6 @@ router.get("/", async (req, res) => {
         console.log(error.message);
         return;
     }
-
     res.status(200).json(orders);
 });
 
@@ -52,9 +51,12 @@ router.get("/", async (req, res) => {
  * description: Success
  * 500:
  * description: Internal Server Error
+ * 404:
+ * description: Order not found
  */
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
+    try {
     const order = await client.order.findUnique({
         where: {
             id: id
@@ -64,13 +66,17 @@ router.get("/:id", async (req, res) => {
     try {
         validateMessage('orderResponse', order, () => {
             console.log('Response is valid');
-        }
-        );} catch (error) {
+        });
+    } catch (error) {
         res.status(500).send();
         console.log(error.message);
         return;
     }
     res.status(200).json(order);
+    } catch (error) {
+        res.status(404).send("Order not found");
+        return;
+    }
 });
 
 /**
@@ -112,24 +118,28 @@ router.post("/", async (req, res) => {
         const articleId = article.id;
         const size = article.size; 
         try {
-        const response = fetch(`${urlStock}/stocks/${articleId}`).then(response => response.json()).then(data => {
+        const response = await fetch(`${urlStock}/stock/${articleId}`);
+        const data = await response.json();
+        
             //on parcourt le json pour trouver le count qui correspond à la size
             //on vérifie si le count est suffisant
             //si le count est suffisant, on crée la commande
             //sinon on renvoie une erreur
             for (stock of data) {
-                //console.log(stock);
+                console.log(stock);
                 if (stock.size === size) {
                     count = stock.count;
                     price = stock.price;
                 }
             }
+            console.log(count);
             if (count > 0) {
+                console.log("count > 0");
                 totalPrice += price;
-                console.log(totalPrice);
+                //console.log(totalPrice);
 
                 //on appelle l'api de stock pour décrémenter le stock
-                fetch(`${urlStock}/stocks/${articleId}`, {
+                fetch(`${urlStock}/stock/${articleId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -138,19 +148,23 @@ router.post("/", async (req, res) => {
                 }).then(response => response.json()).then(data => {
                     //console.log(data);
                 });
+
                 listOrder.push(article);
+            }else {
+                res.status(400).send("Error : Not enough stock");
+                return;
             }
-            
-        });
+        
         fetchPromises.push(response);
         }catch (error) {
-            res.status(500).send();
+            console.log(error);
+            res.status(500).send(error);
             return;
         }
     }
     await Promise.all(fetchPromises);
     
-
+    try {
     const order = await client.order.create({
         data: {
             totalprice: totalPrice,
@@ -159,7 +173,6 @@ router.post("/", async (req, res) => {
         }
     });
     order.createdAt = order.createdAt.toISOString();
-
     // Validation du message de réponse
     try {
         validateMessage('orderResponse', order, () => {
@@ -169,8 +182,11 @@ router.post("/", async (req, res) => {
         res.status(500).send();
         return;
     }
-
     res.status(201).json(order);
+    } catch (error) {
+        res.status(500).send();
+        return;
+    }
 });
 
 /**
@@ -186,7 +202,7 @@ router.post("/", async (req, res) => {
  * responses:
  * 200:
  * description: Success
- * 400:
+ * 404:
  * description: Error : Order not found
  */
 router.delete("/:id", async (req, res) => {
@@ -197,11 +213,12 @@ router.delete("/:id", async (req, res) => {
         where: {
             id: id
         }
-    });} catch (error) {
-        res.status(400).send("Error : Order not found" );
+    });
+    res.status(200).send();
+    } catch (error) {
+        res.status(404).send("Error : Order not found" );
         return;
     }
-    res.status(200);
 });
 
 /**
@@ -261,82 +278,89 @@ router.put("/:id", async (req, res) => {
             console.log('Body is valid');
         });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(400).send();
+        console.log(error.message);
         return;
     }
 
-    const order = await client.order.findUnique({
-        where: {
-            id: id 
-        }
-    });
-
-    if (articles === undefined) {
-        //on modifie juste le status
-        const order = await client.order.update({
+    try {
+        const order = await client.order.findUnique({
             where: {
-                id: id
-            },
-            data: {
-                status: status
+                id: id 
             }
         });
-        res.status(200).json(order);
-    }else{
-        if ((order.status).toLowerCase() === 'in progress') {
-            for (let i = 0; i < articles.length; i++) {
-                const article = articles[i];
-                const articleId = article.id;
-                const size = article.size;
-                const response = fetch(`${urlStock}/stocks/${articleId}`).then(response => response.json()).then(data => {
-                    for (stock of data) {
-                        if (stock.size === size) {
-                            count = stock.count;
-                            price = stock.price;
-                        }
-                    }
-                    if (count > 0) {
-                        totalPrice += price;
-                        fetch(`${urlStock}/stocks/${articleId}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({size: size, count: count - 1})
-                        }).then(response => response.json()).then(data => {
-                            //console.log(data);
-                        });
-                        listOrder.push(article);
-                    }
-                });
-                fetchPromises.push(response);
-            }
-            await Promise.all(fetchPromises);
+
+        if (articles === undefined) {
+            //on modifie juste le status
             const order = await client.order.update({
                 where: {
                     id: id
                 },
                 data: {
-                    totalprice: totalPrice,
-                    status: status,
-                    articles: JSON.stringify(listOrder)
+                    status: status
                 }
             });
-            // Validation du message de réponse
-            order.createdAt = order.createdAt.toISOString();
-            try {
-                validateMessage('orderResponse', order, () => {
-                    console.log('Response is valid');
-                });
-            } catch (error) {
-                res.status(400).json({ message: error.message });
-                return;
-            }
-
             res.status(200).json(order);
-        }else {
-            res.status(400).json({message: "You can't modify this order. The order is completed or canceled."});
+        }else{
+            if ((order.status).toLowerCase() === 'in progress') {
+                for (let i = 0; i < articles.length; i++) {
+                    const article = articles[i];
+                    const articleId = article.id;
+                    const size = article.size;
+                    const response = fetch(`${urlStock}/stock/${articleId}`).then(response => response.json()).then(data => {
+                        for (stock of data) {
+                            if (stock.size === size) {
+                                count = stock.count;
+                                price = stock.price;
+                            }
+                        }
+                        if (count > 0) {
+                            totalPrice += price;
+                            fetch(`${urlStock}/stock/${articleId}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({size: size, count: count - 1})
+                            }).then(response => response.json()).then(data => {
+                                //console.log(data);
+                            });
+                            listOrder.push(article);
+                        }
+                    });
+                    fetchPromises.push(response);
+                }
+                await Promise.all(fetchPromises);
+                const order = await client.order.update({
+                    where: {
+                        id: id
+                    },
+                    data: {
+                        totalprice: totalPrice,
+                        status: status,
+                        articles: JSON.stringify(listOrder)
+                    }
+                });
+                // Validation du message de réponse
+                order.createdAt = order.createdAt.toISOString();
+                try {
+                    validateMessage('orderResponse', order, () => {
+                        console.log('Response is valid');
+                    });
+                } catch (error) {
+                    res.status(500).send();
+                    console.log(error.message);
+                    return;
+                }
+
+                res.status(200).json(order);
+            }else {
+                res.status(400).json({message: "You can't modify this order. The order is completed or canceled."});
+            }
         }
+    }catch (error) {
+        res.status(500).send();
+        return;
     }
 
 });
