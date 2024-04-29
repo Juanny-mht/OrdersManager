@@ -9,7 +9,7 @@ const urlStock = "http://localhost:3002/api";
 
 /** 
  * @swagger
- * /api/orders:
+ * /api/order:
  * get:
  * description: Get all orders
  * responses:
@@ -38,7 +38,7 @@ router.get("/", async (req, res) => {
 
 /**
  * @swagger
- * /api/orders/{id}:
+ * /api/order/{id}:
  * get:
  * description: Get an order by id
  * parameters:
@@ -81,7 +81,7 @@ router.get("/:id", async (req, res) => {
 
 /**
  * @swagger
- * /api/orders:
+ * /api/order:
  * post:
  * description: Create one or more orders
  * requestBody:
@@ -191,7 +191,7 @@ router.post("/", async (req, res) => {
 
 /**
  * @swagger 
- * /api/orders/{id}:
+ * /api/order/{id}:
  * delete:
  * description: Delete an order by id
  * parameters:
@@ -223,7 +223,7 @@ router.delete("/:id", async (req, res) => {
 
 /**
  * @swagger
- * /api/orders:
+ * /api/order:
  * delete:
  * description: Delete all orders
  * responses:
@@ -243,7 +243,7 @@ router.delete("/", async (req, res) => {
 
 /**
  * @swagger
- * /api/orders/{id}:
+ * /api/order/{id}:
  * put:
  * description: Modify an order by id
  * parameters:
