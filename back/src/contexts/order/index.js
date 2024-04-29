@@ -214,7 +214,7 @@ router.delete("/:id", async (req, res) => {
             id: id
         }
     });
-    res.status(200).send();
+    res.status(204).send();
     } catch (error) {
         res.status(404).send("Error : Order not found" );
         return;
@@ -238,7 +238,7 @@ router.delete("/", async (req, res) => {
     }catch(error) {
         res.status(500).send();
     }
-    res.status(200).send();
+    res.status(204).send();
 });
 
 /**
