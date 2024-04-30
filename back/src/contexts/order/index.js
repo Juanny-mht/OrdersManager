@@ -5,7 +5,7 @@ const e = require("express");
 
 const router = Router();
 
-const urlStock = "http://host.docker.internal:3002/api";
+const urlStock = "http://localhost:3002/api";
 
 /** 
  * @swagger
